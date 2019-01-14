@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NEU Scenic Spot Management System</title>
+    <link rel="stylesheet" href="./stylesheet/mdui.min.css">
+    <link rel="stylesheet" href="./stylesheet/datatables.css">
+    <link rel="stylesheet" href="./stylesheet/reset.css">
+    <link rel="stylesheet" href="./stylesheet/style.css">
+    <style>
+        html, body {
+            -moz-user-select: none; /*火狐*/
+            -webkit-user-select: none; /*webkit浏览器*/
+            -ms-user-select: none; /*IE10*/
+            -khtml-user-select: none; /*早期浏览器*/
+            user-select: none;
+        }
+
+        .scrollable-card {
+            display: inline-block;
+            max-width: 200px;
+            position: relative;
+            margin-bottom: 20px !important;
+        }
+
+        .scrollable-card-container {
+            overflow-y: hidden;
+            overflow-x: scroll;
+            white-space: nowrap;
+            width: 100%
+        }
+
+        .slide-fade-enter-active {
+            transition: all .3s ease;
+        }
+
+        .slide-fade-leave-active {
+            transition: all .3s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+        }
+
+        .slide-fade-enter, .slide-fade-leave-to
+            /* .slide-fade-leave-active for below version 2.1.8 */
+        {
+            transform: translateX(50px);
+            opacity: 0;
+        }
+
+        .queue-fade-enter-active {
+            transition: all .3s ease;
+        }
+
+        .queueu-fade-leave-active {
+            transition: all .4s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+        }
+
+        .queue-fade-leave-to {
+            transform: translateX(-50px);
+            opacity: 0;
+        }
+
+        .queue-fade-enter {
+            transform: translateX(50px);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="mdui-bottom-nav-fixed mdui-theme-primary-indigo"
+      style="font-family: 'Microsoft YaHei UI', sans-serif !important;">
+
+<header id="search-header" class="cd-main-header animate-search" style="display: none;">
+    <div class="cd-logo"><a href="#0" style="color: #ffffff; padding-top: 20px; ">搜索景点...</a></div>
+    <nav class="cd-main-nav-wrapper">
+        <a href="#search" class="cd-search-trigger cd-text-replace">Search</a>
+    </nav> <!-- .cd-main-nav-wrapper -->
+
+    <a href="#0" class="cd-nav-trigger cd-text-replace">Menu<span></span></a>
+</header>
+
+<div id="app">
+    <main class="cd-main-content">
+        <br/>
+        <!-- 页面动态主体 -->
+        <div class="mdui-container-fluid" style="overflow-x: hidden;">
+            <transition-group name="queue-fade">
+                <!--Index -->
+                <div v-bind:key="'index'" v-show="router==='index'">
+                    <div class="mdui-card mdui-shadow-0" style="height: 100%; width: 100%;">
+                        <div class="mdui-card-media">
+                            <img src="./images/photo1.jpg"/>
+                            <div class="mdui-card-media-covered mdui-card-media-covered-top mdui-card-media-covered-gradient">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title">宁静一隅，心之所往</div>
+                                    <div class="mdui-card-primary-subtitle">NEU景区欢迎您</div>
+                                </div>
+                                <div class="mdui-card-actions">
+                                    <button onclick="map()" class="mdui-btn mdui-ripple mdui-ripple-white">查看景区导览图</button>
+                                </div>
+                            </div>
+                            <div class="mdui-card-media-covered">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title">最新公告</div>
+                                    <div class="mdui-card-primary-subtitle">{{ notice }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--Map -->
+                <div v-bind:key="'map'" v-show="router==='map'">
+                    <div id="map-page" class="mdui-card mdui-shadow-0">
+                        <div class="mdui-card-primary">
+                            <div class="mdui-card-primary-title">景区图示</div>
+                            <div class="mdui-card-primary-subtitle">悬浮鼠标于边之上可查看景点间距离 <buttton onclick="refresh()" class="mdui-btn mdui-btn-raised">加载地图</buttton></div>
+                        </div>
+                        <div class="mdui-card-content">
+                            <div>
+                                <br/>
+                                <h5 v-if="shortestPaths.length!=0">寻路结果 全长 {{ shortestLength }}m </h5>
+                                <div class="scrollable-card-container" style="max-width: 800px">
+                                    <div v-for="(path,index) in shortestPaths" class="mdui-chip scrollable-card">
+                                        <span class="mdui-chip-icon">{{ index+1 }}</span>
+                                        <span class="mdui-chip-title">{{ path }}
+                                    <i class="mdui-icon material-icons">arrow_forward</i>
+                                </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mdui-row">
+                                <div class="mdui-col-md-9 mdui-col-lg-10">
+                                    <div id="map-graph" style="min-width: 500px; min-height: 600px;">
+                                    </div>
+                                </div>
+                                <div class="mdui-col-md-3 mdui-col-lg-2">
+                                    <div class="mdui-card">
+                                        <div class="mdui-card-primary">
+                                            <div class="mdui-card-primary-title">
+                                                寻路工具
+                                            </div>
+                                        </div>
+                                        <div class="mdui-card-content">
+                                            <p>最短路径寻找</p>
+                                            <label>算法</label>
+                                            <select class="mdui-select" style="width: 100%;">
+                                                <option value="0" selected>
+                                                    Dijkstra
+                                                </option>
+                                                <option value="1">
+                                                    Floyd
+                                                </option>
+                                            </select>
+                                            <br/>
+                                            <label>出发点</label>
+                                            <select class="mdui-select" v-model="shortestSource" style="width: 100%;">
+                                                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>{{
+                                                    vertex.name }}
+                                                </option>
+                                            </select>
+                                            <br/>
+                                            <label>目的地</label>
+                                            <select class="mdui-select" v-model="shortestTarget" style="width: 100%;">
+                                                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                                                    {{ vertex.name }}
+                                                </option>
+                                            </select>
+                                            <br/>
+
+
+                                        </div>
+                                        <div class="mdui-card-actions">
+                                            <button class="mdui-btn mdui-btn-raised mdui-color-theme"
+                                                    onclick="shortestPath()">
+                                                计算最短路径
+                                            </button>
+                                        </div>
+                                        <div class="mdui-divider-inset"></div>
+                                        <div class="mdui-card-content">
+                                            <p>游览线路推荐 （若起始点相同将计算哈密尔顿回路）</p>
+                                            <label>出发点</label>
+                                            <select class="mdui-select" v-model="recommendSource" style="width: 100%;">
+                                                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                                                    {{ vertex.name }}
+                                                </option>
+                                            </select>
+                                            <br/>
+                                            <label>目的地</label>
+                                            <select class="mdui-select" v-model="recommendTarget" style="width: 100%;">
+                                                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                                                    {{ vertex.name }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="mdui-card-actions">
+                                            <button class="mdui-btn mdui-btn-raised mdui-color-theme"
+                                                    onclick="recommendPath()">
+                                                计算推荐路径
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="mdui-card-primary">
+                                <div class="mdui-card-primary-title">景点一览表</div>
+                                <div class="mdui-card-primary-subtitle">点击条目可跳转到详情页面 <button class="mdui-btn mdui-btn-raised" onclick="sortSpot()">排序</button></div>
+                            </div>
+                            <table id="spot-table" class="mdui-table mdui-table-hoverable">
+                                <thead>
+                                <tr>
+                                    <td>
+                                        景点名称
+                                    </td>
+                                    <td>
+                                        描述
+                                    </td>
+                                    <td>
+                                        欢迎度
+                                    </td>
+                                    <td>
+                                        休息区
+                                    </td>
+                                    <td>
+                                        洗手间
+                                    </td>
+                                </tr>
+                                </thead>
+                                <tbody id="scenic-spots-table">
+                                <tr v-for="vertex in jsonVertex" @click="showSpotDetail(vertex.id)">
+                                    <td>
+                                        {{ vertex.name }}
+                                    </td>
+                                    <td>
+                                        {{ vertex.description }}
+                                    </td>
+                                    <td>
+                                        {{ vertex.popular }}
+                                    </td>
+                                    <td>
+                                        <span v-if="vertex.hasRestArea===true"><i
+                                                class="mdui-icon material-icons">check</i></span>
+                                        <span v-else=""><i class="mdui-icon material-icons">close</i></span>
+                                    </td>
+                                    <td>
+                                    <span v-if="vertex.hasToilet===true"><i
+                                            class="mdui-icon material-icons">check</i></span>
+                                        <span v-else=""><i class="mdui-icon material-icons">close</i></span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!--Admin -->
+                <div v-bind:key="'admin'" v-show="router==='admin'">
+                    <div class="mdui-card mdui-shadow-0">
+                        <div class="mdui-card-primary">
+                            <div class="mdui-card-primary-title">
+                                <i class="mdui-icon material-icons">report</i> 此操作需要管理员权限。
+                            </div>
+                            <div class="mdui-card-primary-subtitle">在弹出的窗口中进行提权以继续操作。 Permission denied: P_ADMIN.</div>
+                        </div>
+                    </div>
+                </div>
+                <!--Detail -->
+                <div v-bind:key="'detail'" v-show="router==='detail'">
+                    <div class="mdui-card">
+                        <!-- 卡片的媒体内容，可以包含图片、视频等媒体内容，以及标题、副标题 -->
+                        <div class="mdui-card-media">
+                            <img src="images/photo2.jpg"/>
+
+                            <!-- 卡片中可以包含一个或多个菜单按钮 -->
+                            <div class="mdui-card-menu">
+                                <button class="mdui-btn mdui-btn-icon mdui-text-color-white"><i
+                                        class="mdui-icon material-icons">share</i></button>
+                            </div>
+                            <div class="mdui-card-media-covered">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title">{{ detailDisplaySpot.name }}</div>
+                                    <div class="mdui-card-primary-subtitle">
+                                        人气指数{{ detailDisplaySpot.popular }} /
+                                        {{ detailDisplaySpot.hasRestArea?'有':'无' }}休息区 /
+                                        {{ detailDisplaySpot.hasToilet?'有':'无' }}洗手间
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 卡片的内容 -->
+                        <div class="mdui-card-content">{{ detailDisplaySpot.description }}</div>
+
+                        <!-- 卡片的按钮 -->
+                        <div class="mdui-card-actions">
+                            <button class="mdui-btn mdui-ripple">更多景点</button>
+                            <button class="mdui-btn mdui-ripple">线路导航</button>
+                        </div>
+                    </div>
+                </div>
+                <!--Parking -->
+                <div v-bind:key="'parking'" v-show="router==='parking'">
+                    <div class="mdui-row">
+                        <div class="mdui-col-md-7 mdui-col-lg-8">
+                            <div class="mdui-card">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title"><i
+                                            class="mdui-icon material-icons">hourglass_empty</i> 等待队列
+                                    </div>
+                                    <div class="mdui-card-primary-subtitle">车库外部等待进入车库的车辆</div>
+                                </div>
+                                <div class="mdui-card-content">
+                                    <p v-if="waiting.length == 0"><i class="mdui-icon material-icons">info_outline</i>
+                                        等待队列中没有车辆</p>
+                                    <div>
+                                        <transition-group class="scrollable-card-container" name="queue-fade" tag="div">
+                                            <div v-for="car in waiting" v-bind:key="car.id"
+                                                 class="mdui-card scrollable-card">
+                                                <div class="mdui-card-media">
+                                                    <img :src="'images/car/'+car.img+'.png'"/>
+                                                    <div class="mdui-card-media-covered">
+                                                        <div class="mdui-chip">
+                                                            <span class="mdui-chip-title mdui-color-theme">车牌 {{ car.id }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mdui-card-primary">
+                                                </div>
+                                            </div>
+                                        </transition-group>
+                                    </div>
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="mdui-card">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title"><i
+                                            class="mdui-icon material-icons">directions_car</i> 库内车辆 <span
+                                            v-if="parking.length >= parkingSize">(已满)</span> {{ parking.length }}/{{
+                                        parkingSize }}
+                                    </div>
+                                    <div class="mdui-card-primary-subtitle"> 当前车库最大容量 {{ parkingSize }} 辆机动车</div>
+                                </div>
+                                <div class="mdui-card-content">
+                                    <p v-if="parking.length == 0"><i class="mdui-icon material-icons">info_outline</i>
+                                        车库中没有车辆，右侧选项面板提供车辆入库操作。</p>
+                                    <div>
+                                        <transition-group class="scrollable-card-container" name="slide-fade" tag="div">
+                                            <div v-for="car in parking" v-bind:key="car.id"
+                                                 class="mdui-card scrollable-card">
+                                                <div class="mdui-card-media">
+                                                    <img :src="'images/car/'+car.img+'.png'"/>
+                                                    <div class="mdui-card-media-covered">
+                                                        <div class="mdui-chip">
+                                                            <span class="mdui-chip-title mdui-color-theme">车牌 {{ car.id }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mdui-card-content">
+
+                                                </div>
+                                                <div class="mdui-card-actions">
+                                                    <button class="mdui-btn mdui-color-theme" @click="carLeave(car.id)">
+                                                        离开
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </transition-group>
+                                    </div>
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="mdui-card">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title"><i class="mdui-icon material-icons">radio_button_unchecked</i>
+                                        调度缓冲便道
+                                    </div>
+                                    <div class="mdui-card-primary-subtitle"></div>
+                                </div>
+                                <div class="mdui-card-content">
+                                    <p v-if="buffer.length == 0"><i class="mdui-icon material-icons">info_outline</i>
+                                        缓冲便道中没有车辆</p>
+                                    <div>
+                                        <transition-group class="scrollable-card-container" name="slide-fade" tag="div">
+                                            <div v-for="car in buffer" v-bind:key="car.id"
+                                                 class="mdui-card scrollable-card">
+                                                <div class="mdui-card-media">
+                                                    <img :src="'images/car/'+car.img+'.png'"/>
+                                                    <div class="mdui-card-media-covered">
+                                                        <div class="mdui-chip">
+                                                            <span class="mdui-chip-title mdui-color-theme">车牌 {{ car.id }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mdui-card-primary">
+                                                </div>
+                                            </div>
+                                        </transition-group>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mdui-col-md-5 mdui-col-lg-4">
+                            <div class="mdui-card">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title">
+                                        <i class="mdui-icon material-icons">settings</i> 选项
+                                    </div>
+                                </div>
+                                <div class="mdui-card-content">
+                                    <label><i class="mdui-icon material-icons">photo_size_select_small</i> 车库大小</label>
+                                    <div class="mdui-textfield">
+                                        <label class="mdui-textfield-label">大小</label>
+                                        <input v-model="parkingSize" class="mdui-textfield-input" type="number"/>
+                                    </div>
+                                    <button class="mdui-btn mdui-btn-raised"
+                                            onclick="resetParkingSize()">
+                                        <i class="mdui-icon material-icons">refresh</i> 重置大小
+                                    </button>
+                                    <br/><br/>
+
+                                    <label><i class="mdui-icon material-icons">arrow_downward</i> 入库操作</label>
+                                    <div class="mdui-textfield mdui-textfield-floating-label">
+                                        <label class="mdui-textfield-label">车牌号</label>
+                                        <input v-model="cardIDToAdd" class="mdui-textfield-input" type="text"/>
+                                    </div>
+                                    <br/>
+
+                                    <p>{{ parkingMsg }}</p>
+
+                                    <div class="mdui-card-actions">
+                                        <button class="mdui-btn mdui-btn-raised mdui-color-theme"
+                                                onclick="if(!app.mutexLock) {app.lock();UIEngine.parkingLot.come(app.cardIDToAdd)}">
+                                            <i class="mdui-icon material-icons">play_arrow</i> 入库
+                                        </button>
+                                        <button class="mdui-btn mdui-btn-raised mdui-color-theme"
+                                                onclick="if(!app.mutexLock) {app.lock();UIEngine.parkingLot.come(randomString(5))}">
+                                            <i class="mdui-icon material-icons">format_list_numbered</i> 随机车牌入库
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition-group>
+        </div>
+    </main>
+
+    <!--Search-->
+    <div id="search" class="cd-main-search">
+        <form>
+            <input id="search-field" type="search" placeholder="键入景区名字或关键字...">
+        </form>
+        <div class="cd-search-suggestions">
+            <div class="news">
+                <h3>搜索结果</h3>
+                <p v-if="searchResults.length===0">找到没有结果。</p>
+                <ul>
+                    <li v-for="result in searchResults" @click="showSpotDetail(result.id)">
+                        <a class="image-wrapper" href="#"><img src="images/placeholder.png" alt="News image"></a>
+                        <h4><a class="cd-nowrap" href="#">{{ result.name }}</a></h4>
+                        <p>{{ result.description }}</p>
+                    </li>
+                </ul>
+            </div> <!-- .results -->
+
+        </div> <!-- .cd-search-suggestions -->
+
+        <a href="#0" class="close cd-text-replace">Close Form</a>
+    </div>
+    <!-- .cd-main-search -->
+</div>
+<div class="cd-cover-layer"></div> <!-- cover main content when search form is open -->
+<div class="mdui-bottom-nav mdui-color-indigo" style="z-index: 99">
+    <a href="javascript:index();" class="mdui-ripple mdui-bottom-nav-active">
+        <i class="mdui-icon material-icons">home</i>
+        <label>欢迎</label>
+    </a>
+    <a href="javascript:map();" class="mdui-ripple">
+        <i class="mdui-icon material-icons">location_on</i>
+        <label>景点分布地图</label>
+    </a>
+    <a id="btn-search" onclick="openSearch()" class="mdui-ripple">
+        <i class="mdui-icon material-icons">favorite</i>
+        <label>搜寻景点</label>
+    </a>
+    <a href="javascript:parking();" class="mdui-ripple">
+        <i class="mdui-icon material-icons">directions_car</i>
+        <label>停车场</label>
+    </a>
+    <a href="javascript:admin();" class="mdui-ripple">
+        <i class="mdui-icon material-icons">settings</i>
+        <label>管理员</label>
+    </a>
+</div>
+
+<script src="ecmascript/jquery.min.js"></script>
+<script src="ecmascript/modernizr.js"></script>
+<script src="ecmascript/mdui.min.js"></script>
+<script src="ecmascript/framework.js"></script>
+<script src="ecmascript/echarts.js"></script>
+<script src="ecmascript/datatables.min.js"></script>
+<script src="ecmascript/main.js"></script>
+<script src="ecmascript/ui-control.js"></script>
+<script>
+
+    function index() {
+        app.router = 'index';
+    }
+
+    function admin() {
+        app.router = 'admin';
+        UIEngine.loginWindow();
+    }
+
+    function map() {
+        app.router = 'map';
+        UIEngine.loadMap();
+    }
+
+    function parking() {
+        app.router = 'parking';
+        if(app.parking.length==0) {
+            UIEngine.initParkingLot(5);
+        }
+    }
+
+    function resetParkingSize() {
+        mdui.confirm('确认重置车库大小？当前车辆信息将被丢弃。', function () {
+            resetParkingSizeConfirmed();
+            mdui.alert('已重置车库大小为' + app.parkingSize + '.')
+        });
+    }
+
+    function resetParkingSizeConfirmed() {
+        app.parking = [];
+        app.waiting = [];
+        app.buffer = [];
+        UIEngine.initParkingLot(parseInt(app.parkingSize));
+    }
+
+    // 寻路
+    function shortestPath() {
+        UIEngine.calculateShortestAndDisplay(app.shortestTarget, app.shortestSource);
+    }
+
+    function recommendPath() {
+        UIEngine.hamilton();
+    }
+
+    function openSearch() {
+        $('#search-header').slideDown(100);
+        $('.cd-search-trigger').addClass('search-form-visible');
+        $('.cd-cover-layer').addClass('search-form-visible');
+        $('.cd-main-search').addClass('is-visible').one('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
+            function () {
+                $('.cd-main-search').find('input[type="search"]').focus().end().off('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend');
+            });
+    }
+
+    function closeSearch() {
+        $('.cd-search-trigger').removeClass('search-form-visible');
+        $('.cd-main-search').removeClass('is-visible');
+        $('.cd-cover-layer').removeClass('search-form-visible');
+        $('#search-header').slideUp(100);
+    }
+
+    function showSpotDetail(id) {
+        closeSearch();
+        app.router = 'detail';
+        for (var i = 0; i < app.jsonVertex.length; i++) {
+            if (app.jsonVertex[i].id === id) {
+                app.detailDisplaySpot = app.jsonVertex[i];
+                break;
+            }
+        }
+    }
+
+    function carLeave(id) {
+        if(!app.mutexLock) {
+            app.lock();
+            UIEngine.carLeave(id);
+        }
+    }
+
+    Vue.prototype.showSpotDetail = function (id) {
+        showSpotDetail(id)
+    };
+
+    Vue.prototype.carLeave = function (id) {
+        carLeave(id)
+    };
+
+    function search(content) {
+        app.searchResults = [];
+        if (content === "") return;
+        for (var i = 0; i < app.jsonVertex.length; i++) {
+            if (app.jsonVertex[i].name.toLowerCase().indexOf(content) > -1) {
+                app.searchResults.push(app.jsonVertex[i]);
+            }
+        }
+    }
+
+    var asc = true;
+    function sortSpot(){
+        if(asc) {
+            app.jsonVertex.sort(app.byPopularA);
+            asc = false;
+        }else{
+            app.jsonVertex.sort(app.byPopularD);
+            asc = true;
+        }
+    }
+
+    document.getElementById("search-field").oninput = function () { // 搜索事件绑定
+        search(document.getElementById("search-field").value);
+    };
+
+    document.onload = function (ev) {
+        // $('#spot-table').DataTable();
+    }
+
+    function refresh(){
+        UIEngine.refreshAll();
+    }
+
+</script>
+</body>
+</html>

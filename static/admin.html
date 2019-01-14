@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NEU Scenic Spot Management System</title>
+    <link rel="stylesheet" href="./stylesheet/mdui.min.css">
+    <link rel="stylesheet" href="./stylesheet/datatables.css">
+    <style>
+        html, body {
+            -moz-user-select: none; /*火狐*/
+            -webkit-user-select: none; /*webkit浏览器*/
+            -ms-user-select: none; /*IE10*/
+            -khtml-user-select: none; /*早期浏览器*/
+            user-select: none;
+        }
+
+        .queue-fade-enter-active {
+            transition: all .3s ease;
+        }
+
+        .queueu-fade-leave-active {
+            transition: all .4s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+        }
+
+        .queue-fade-leave-to {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+
+        .queue-fade-enter {
+            transform: translateX(50px);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="mdui-theme-primary-indigo"
+      style="font-family: 'Microsoft YaHei UI', sans-serif !important;">
+<div id="app" style="overflow-x: hidden;">
+    <br/>
+    <div class="mdui-tab" mdui-tab>
+        <a href="#" @click="router='index'" class="mdui-ripple">景点设置</a>
+        <a href="#" @click="router='edge'" class="mdui-ripple">路线设置</a>
+        <a href="#" @click="router='notice'" class="mdui-ripple">通用</a>
+    </div>
+    <br/>
+    <transition-group class="mdui-container" name="queue-fade" tag="div">
+        <div v-bind:key="'index'" v-show="router=='index'">
+            <!--Index -->
+            <div class="mdui-row">
+                <div id="map-page" class="mdui-card mdui-shadow-0">
+                    <div class="mdui-card-primary">
+                        <div class="mdui-card-primary-title"><i class="mdui-icon material-icons">photo_album</i> 景区图示</div>
+                        <div class="mdui-card-primary-subtitle">悬浮鼠标于边之上可查看景点间距离 <buttton onclick="refresh()" class="mdui-btn mdui-btn-raised">加载地图</buttton></div>
+                    </div>
+                    <div class="mdui-card-content">
+                        <div class="mdui-row">
+                            <div class=" mdui-col-md-10">
+                                <div id="map-graph" style="width: 100% !important; height: 600px;">
+                                </div>
+                            </div>
+                            <div class="mdui-col-md-2 mdui-card">
+                                <div class="mdui-card-primary">
+                                    <div class="mdui-card-primary-title">
+                                        <i class="mdui-icon material-icons">settings_applications</i> 操作选项
+                                    </div>
+                                </div>
+                                <div class="mdui-card-actions-stacked">
+                                    <button onclick="newVertex()" class="mdui-btn mdui-btn-raised" onclick="UIEngine.createScenicSpot();"
+                                            mdui-dialog="{target: '#vertex-dialog'}">
+                                        <i class="mdui-icon material-icons">add_to_photos</i> 新建景点
+                                    </button>
+                                    <br/>
+                                    <button onclick="newEdge()" class="mdui-btn mdui-color-theme mdui-btn-raised"
+                                            mdui-dialog="{target: '#edge-dialog'}">
+                                        <i class="mdui-icon material-icons">playlist_add</i> 新建路径关联
+                                    </button>
+                                    <br/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mdui-card-primary">
+                            <div class="mdui-card-primary-title">当前在录景点</div>
+                        </div>
+                        <table id="spot-table" class="mdui-table mdui-table-hoverable">
+                            <thead>
+                            <tr>
+                                <td>
+                                    景点名称
+                                </td>
+                                <td>
+                                    描述
+                                </td>
+                                <td>
+                                    欢迎度
+                                </td>
+                                <td>
+                                    休息区
+                                </td>
+                                <td>
+                                    洗手间
+                                </td>
+                                <td>
+                                    操作
+                                </td>
+                            </tr>
+                            </thead>
+                            <tbody id="scenic-spots-table">
+                            <tr v-for="vertex in jsonVertex">
+                                <td>
+                                    {{ vertex.name }}
+                                </td>
+                                <td>
+                                    {{ vertex.description }}
+                                </td>
+                                <td>
+                                    {{ vertex.popular }}
+                                </td>
+                                <td>
+                                    <span v-if="vertex.hasRestArea===true">有</span>
+                                    <span v-else="">无</span>
+                                </td>
+                                <td>
+                                    <span v-if="vertex.hasToilet===true">有</span>
+                                    <span v-else="">无</span>
+                                </td>
+                                <td>
+                                    <button class="mdui-btn mdui-color-theme" @click="editVertex(vertex.id)" mdui-dialog="{target: '#vertex-dialog'}">
+                                        <i class="mdui-icon material-icons">edit</i> 修改</button>
+                                    <button class="mdui-btn mdui-btn-raised" @click="removeVertex(vertex.id)">
+                                        <i class="mdui-icon material-icons">delete</i> 删除
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-bind:key="'edge'" v-show="router=='edge'">
+            <br/>
+            <div class="mdui-card-primary">
+                <div class="mdui-card-primary-title">
+                    <i class="mdui-icon material-icons">list</i> 路径管理
+                </div>
+            </div>
+            <br/>
+            <button onclick="newEdge()" class="mdui-btn mdui-color-theme mdui-btn-raised"
+                    mdui-dialog="{target: '#edge-dialog'}">
+                <i class="mdui-icon material-icons">playlist_add</i> 新建路径关联
+            </button>
+            <br/>
+            <table id="edge-table" class="mdui-table mdui-table-hoverable">
+                <thead>
+                <tr>
+                    <td>
+                        编号
+                    </td>
+                    <td>
+                        连接端A
+                    </td>
+                    <td>
+                        连接端B
+                    </td>
+                    <td>
+                        长度
+                    </td>
+                    <td>
+                        步行耗时
+                    </td>
+                    <td>
+                        操作
+                    </td>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="edge in jsonEdge" @click="showSpotDetail(vertex.id)">
+                    <td>
+                        {{ edge.id }}
+                    </td>
+                    <td>
+                        {{ findVertex(edge.from).name }}
+                    </td>
+                    <td>
+                        {{ findVertex(edge.to).name }}
+                    </td>
+                    <td>
+                        {{ edge.weight }}m
+                    </td>
+                    <td>
+                        {{ edge.time }}分
+                    </td>
+                    <td>
+                        <button class="mdui-btn mdui-color-theme" @click="editEdge(edge.id)"
+                                mdui-dialog="{target: '#edge-dialog'}"><i class="mdui-icon material-icons">edit</i> 修改
+                        </button>
+                        <button class="mdui-btn mdui-btn-raised" @click="removeEdge(edge.id)">
+                            <i class="mdui-icon material-icons">delete</i> 删除</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div v-bind:key="'notice'" v-show="router=='notice'">
+            <div class="mdui-card">
+                <div class="mdui-card-primary">
+                    <div class="mdui-card-primary-title">
+                        <i class="mdui-icon material-icons">notifications_active</i> 公告内容发布
+                    </div>
+                </div>
+                <div class="mdui-card-content">
+                    <div class="mdui-textfield">
+                        <label class="mdui-textfield-label">公告内容</label>
+                        <textarea v-model="notice" class="mdui-textfield-input"></textarea>
+                    </div>
+                </div>
+                <div class="mdui-card-actions">
+                    <button onclick="saveNotice()" class="mdui-btn mdui-btn-raised" mdui-dialog-close>
+                        <i class="mdui-icon material-icons">save</i> 保存
+                    </button>
+                    <button onclick="UIEngine.logout()" class="mdui-btn mdui-color-theme mdui-btn-raised" mdui-dialog-close>
+                        <i class="mdui-icon material-icons">directions_run</i> 登出
+                    </button>
+                </div>
+            </div>
+        </div>
+    </transition-group>
+
+    <div id="vertex-dialog" class="mdui-dialog">
+        <div class="mdui-dialog-title">景点</div>
+        <div class="mdui-card-content">
+            <br/>
+            <div class="mdui-textfield">
+                <label class="mdui-textfield-label">名称</label>
+                <input v-model="admin.newVertex.name" class="mdui-textfield-input" type="text"/>
+            </div>
+            <div class="mdui-textfield">
+                <label class="mdui-textfield-label">描述</label>
+                <textarea v-model="admin.newVertex.description" class="mdui-textfield-input"></textarea>
+            </div>
+            <div class="mdui-textfield">
+                <label class="mdui-textfield-label">人气指数</label>
+                <input v-model="admin.newVertex.popular" class="mdui-textfield-input" type="number"/>
+            </div>
+            <label class="mdui-switch">
+                是否有休息区
+                <input v-model="admin.newVertex.hasRestArea" type="checkbox"/>
+                <i class="mdui-switch-icon"></i>
+            </label>
+            <label class="mdui-switch">
+                是否有洗手间
+                <input v-model="admin.newVertex.hasToilet" type="checkbox"/>
+                <i class="mdui-switch-icon"></i>
+            </label>
+            <!--<div v-if="admin.newVertex.id == null">
+                <label>与其连接的景点(一条路径将自动被创建)</label>
+                <select class="mdui-select" v-model="admin.newToConnect" style="width: 100%;">
+                    <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                        {{ vertex.name }}
+                    </option>
+                </select>
+            </div>-->
+        </div>
+        <div class="mdui-card-actions">
+            <button class="mdui-btn mdui-color-theme" onclick="app.newVertex()" mdui-dialog-close>保存</button>
+        </div>
+    </div>
+    <div id="edge-dialog" class="mdui-dialog">
+        <div class="mdui-dialog-title">道路</div>
+        <div class="mdui-card-content">
+            <label>端点A</label>
+            <select class="mdui-select" v-model="admin.newEdge.from" style="width: 100%;">
+                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                    {{ vertex.name }}
+                </option>
+            </select>
+            <br/>
+            <label>端点B</label>
+            <select class="mdui-select" v-model="admin.newEdge.to" style="width: 100%;">
+                <option v-for="vertex in jsonVertex" :value="vertex.id" selected>
+                    {{ vertex.name }}
+                </option>
+            </select>
+            <div class="mdui-textfield">
+                <label class="mdui-textfield-label">长度(m)</label>
+                <input v-model="admin.newEdge.weight" class="mdui-textfield-input" type="number"/>
+            </div>
+            <div class="mdui-textfield">
+                <label class="mdui-textfield-label">预计耗时(分)</label>
+                <input v-model="admin.newEdge.time" class="mdui-textfield-input" type="number"/>
+            </div>
+            <button class="mdui-btn mdui-color-theme" onclick="app.newEdge()" mdui-dialog-close>保存</button>
+        </div>
+    </div>
+</div>
+<script src="ecmascript/mdui.min.js"></script>
+<script src="ecmascript/framework.js"></script>
+<script src="ecmascript/echarts.js"></script>
+<script src="ecmascript/jquery.min.js"></script>
+<script src="ecmascript/jquery-ui.min.js"></script>
+<script src="ecmascript/datatables.min.js"></script>
+<script src="ecmascript/ui-control.js"></script>
+<script>
+
+    function index() {
+        app.router = 'index';
+    }
+
+    function map() {
+        UIEngine.loadMap();
+    }
+
+    function editVertex(id) {
+        app.admin.newVertex = app.findIn(app.jsonVertex, id)
+    }
+
+    function removeVertex(id) {
+        mdui.confirm('确认删除此景点？此操作不可撤销。', function () {
+            UIEngine.removeScenicSpot(id);
+            mdui.alert('景点已删除。')
+        });
+    }
+
+    function newVertex() {
+        app.admin.newVertex = {
+            hasRestArea: false,
+            hasToilet: false,
+            name: "",
+            description: "",
+            popular: 0
+        }
+        // mdui.alert(JSON.stringify(app.admin.newEdge));
+    }
+
+    function newEdge() {
+        app.admin.newEdge = {
+            from: 1,
+            to: 2,
+            weight: 0,
+            time: 0
+        }
+        app.admin.newToConnect = 0;
+        // mdui.alert(JSON.stringify(app.admin.newEdge));
+    }
+
+    function editEdge(id) {
+        app.admin.newEdge = app.findIn(app.jsonEdge, id);
+        // mdui.alert(JSON.stringify(app.admin.newEdge));
+    }
+
+    function removeEdge(id) {
+        mdui.confirm('确认删除此路径？此操作不可撤销。', function () {
+            UIEngine.removePath(id);
+            mdui.alert('路径已删除。')
+        });
+    }
+
+    function saveNotice() {
+        UIEngine.saveNotice(app.notice);
+        mdui.alert('当前公告内容已保存并发布');
+    }
+
+    Vue.prototype.removeVertex = function (id) {
+        removeVertex(id);
+    }
+
+    Vue.prototype.editVertex = function (id) {
+        editVertex(id);
+    }
+
+    Vue.prototype.removeEdge = function (id) {
+        removeEdge(id);
+    }
+
+    Vue.prototype.editEdge = function (id) {
+        editEdge(id);
+    }
+
+    window.onload = function (ev) {
+        UIEngine.initData();
+        UIEngine.loadMap()
+    }
+
+    function refresh(){
+        UIEngine.refreshAll();
+    }
+
+</script>
+</body>
+</html>

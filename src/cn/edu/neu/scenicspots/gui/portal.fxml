@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXHamburger?>
+<?import com.jfoenix.controls.JFXRippler?>
+<?import com.jfoenix.controls.JFXToolbar?>
+<?import java.net.URL?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane fx:id="root" prefHeight="900" prefWidth="1280" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.neu.scenicspots.gui.MainController">
+    <stylesheets>
+        <URL value="@css/jfoenix-components.css" />
+        <URL value="@css/jfoenix-main.css" />
+    </stylesheets>
+    <!-- Header -->
+    <BorderPane fx:id="mainContainer">
+        <top>
+            <VBox spacing="20">
+                <JFXToolbar>
+                    <leftItems>
+                        <Label fx:id="title">NEU 景区管理系统</Label>
+                    </leftItems>
+                    <rightItems>
+                        <JFXRippler fx:id="optionsRippler" maskType="CIRCLE" style="-fx-ripple-color:WHITE;">
+                            <StackPane fx:id="optionsBurger">
+                                <JFXHamburger fx:id="optionBurger" styleClass="jfx-options-burger">
+                                </JFXHamburger>
+                            </StackPane>
+                        </JFXRippler>
+                    </rightItems>
+               <effect>
+                  <DropShadow height="64.0" radius="15.5" spread="0.2" width="0.0" />
+               </effect>
+                </JFXToolbar>
+            </VBox>
+        </top>
+        <!-- Content Area -->
+        <center>
+            <StackPane fx:id="browserViewContainer">
+            </StackPane>
+        </center>
+    </BorderPane>
+</StackPane>

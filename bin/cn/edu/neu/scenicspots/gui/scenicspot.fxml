@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXTextArea?>
+<?import com.jfoenix.controls.JFXTextField?>
+<?import com.jfoenix.controls.JFXToggleButton?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="460.0" prefWidth="377.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.neu.scenicspots.gui.ScenicSpotController">
+   <children>
+      <JFXButton buttonType="RAISED" layoutX="278.0" layoutY="376.0" onAction="#saveScenicSpot" prefHeight="37.0" prefWidth="59.0" text="保存" AnchorPane.bottomAnchor="30.0" AnchorPane.rightAnchor="40.0">
+         <font>
+            <Font name="Microsoft YaHei Light" size="12.0" />
+         </font>
+      </JFXButton>
+      <JFXTextField fx:id="name" labelFloat="true" layoutX="40.0" layoutY="137.0" prefHeight="37.0" prefWidth="295.0" promptText="景点名称" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0">
+         <font>
+            <Font name="Microsoft YaHei Light" size="12.0" />
+         </font>
+      </JFXTextField>
+      <JFXTextField fx:id="popular" labelFloat="true" layoutX="40.0" layoutY="211.0" prefHeight="37.0" prefWidth="295.0" promptText="人流欢迎度 (数字)" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0">
+         <font>
+            <Font name="Microsoft YaHei Light" size="12.0" />
+         </font>
+      </JFXTextField>
+      <Label layoutX="41.0" layoutY="44.0" prefHeight="109.0" prefWidth="377.0" style="-fx-background-color: #4059a9;" text="   景点" textFill="WHITE" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <font>
+            <Font name="Microsoft YaHei Light" size="27.0" />
+         </font>
+      </Label>
+      <Label alignment="CENTER_RIGHT" layoutX="141.0" layoutY="83.0" prefHeight="15.0" prefWidth="196.0" text="键入凭据提权以继续操作" textAlignment="RIGHT" textFill="WHITE" AnchorPane.rightAnchor="40.0" AnchorPane.topAnchor="83.0" />
+      <JFXToggleButton fx:id="hasRestArea" layoutX="40.0" layoutY="327.0" text="是否有休息区" />
+      <JFXToggleButton fx:id="hasToilet" layoutX="195.0" layoutY="327.0" prefWidth="142.0" text="是否有洗手间" />
+      <JFXTextArea fx:id="description" layoutX="40.0" layoutY="267.0" prefHeight="51.0" prefWidth="297.0" promptText="景点描述" />
+   </children>
+</AnchorPane>
